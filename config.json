@@ -1,0 +1,16 @@
+{
+   "scheduler": "PBS",
+   "script_template_file": "submit_threads.template.sh",
+   "script_template_opts":{
+      "executable": "/path/to/your/executable",
+      "walltime": "01:00:00",
+      "job_name": "thread_scaling",
+      "project": "datascience",
+      "queue": "debug",
+      "filesystems": "home:eagle"
+   },
+   "run_type": "threads",
+   "range": [1, 2, 4, 8, 16],
+   "fixed_value": 1,
+   "output_path": "output"
+}
