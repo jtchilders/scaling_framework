@@ -1,0 +1,19 @@
+{
+   "scheduler": "PBS",
+   "script_template_file": "templates/pepper_ranks_polaris.sh",
+   "script_template_opts":{
+      "process": "g g -> t tb g g g",
+      "n_batches": 100,
+      "executable": "src/pepper",
+      "walltime": "00:20:00",
+      "job_name": "pepper_scaling",
+      "project": "atlas_aesp",
+      "queue": "debug-scaling",
+      "filesystems": "home:grand",
+      "ranks_per_node": 4
+   },
+   "run_type": "ranks",
+   "range": [32,16,8,4],
+   "fixed_value": 524288,
+   "output_path": "/lus/grand/projects/datascience/parton/pepper_output"
+}

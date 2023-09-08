@@ -22,13 +22,14 @@ class PBS(Scheduler):
       opts = config['script_template_opts']
       opts['threads'] = threads
       opts['ranks'] = ranks
+      opts['num_nodes'] = int(ranks / opts['ranks_per_node'])
       script_content = self.SUBMIT_SCRIPT.format(**opts)
       logging.debug("script file:\n%s",script_content)
 
       # make sure output path exists
       os.makedirs(job_working_path,exist_ok=True)
 
-      script_name = f"{opts['job_name']}_{threads}threads_{ranks}ranks.pbs.sh"
+      script_name = f"{threads:06d}-threads_{ranks:05d}-ranks.pbs.sh"
       script_path = os.path.join(job_working_path,script_name)
       with open(script_path, 'w') as f:
          f.write(script_content)
@@ -38,6 +39,10 @@ class PBS(Scheduler):
       logger.debug("submit command: %s",cmd)
       if not no_sub:
          result = subprocess.run(cmd, capture_output=True, shell=True, text=True,cwd=job_working_path)
+
+         if result.returncode != 0:
+            open(os.path.join(job_working_path,script_name + '.output.txt'),'w').write(result.stdout)
+            open(os.path.join(job_working_path,script_name + '.error.txt'),'w').write(result.stderr)
 
          # Extract job ID from the result (assuming the format is "1234.servername")
          job_id = result.stdout.split('.')[0]

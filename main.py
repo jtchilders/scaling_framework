@@ -3,6 +3,7 @@ from scheduler import PBS  # Import other schedulers as you implement them
 import logging
 import argparse
 import os
+import time
 logger = logging.getLogger(__name__)
 
 def get_scheduler(name):
@@ -14,26 +15,41 @@ def get_scheduler(name):
     else:
         raise ValueError(f"Unsupported scheduler: {name}")
 
-def run_with_threads(scheduler, config, no_sub=False):
+def run_with_threads(scheduler, config, no_sub=False, single_queue=False):
     for threads in config["range"]:
-        job_working_path = os.path.join(config['output_path'],'threads', f'{threads:05d}-threads_{config["fixed_value"]:05d}-ranks')
-        scheduler.submit(config,threads,config['fixed_value'],job_working_path,no_sub)
+        ranks = config['fixed_value']
+        job_working_path = os.path.join(config['output_path'],'threads', f'{threads:06d}-threads_{ranks:05d}-ranks')
+        job_id = scheduler.submit(config,threads,ranks,job_working_path,no_sub)
 
-def run_with_ranks(scheduler, config, no_sub=False):
+        if single_queue and not no_sub:
+            logger.info('waiting for job %s with %d threads %d ranks',job_id,threads,ranks)
+            while scheduler.status(job_id):
+                logger.debug('waiting for job %s',job_id)
+                time.sleep(30)  # Check every 30 seconds
+
+
+def run_with_ranks(scheduler, config, no_sub=False, single_queue=False):
     for ranks in config["range"]:
-        job_working_path = os.path.join(config['output_path'],'ranks', f'/{config["fixed_value"]:05d}-threads_{ranks:05d}-ranks')
-        scheduler.submit(config,config['fixed_value'],ranks,job_working_path,no_sub)
+        threads = config["fixed_value"]
+        job_working_path = os.path.join(config['output_path'],'ranks', f'{threads:06d}-threads_{ranks:05d}-ranks')
+        job_id = scheduler.submit(config,threads,ranks,job_working_path,no_sub)
 
-def main(config_file,no_sub=False):
+        if single_queue and not no_sub:
+            logger.info('waiting for job %s with %d threads %d ranks',job_id,threads,ranks)
+            while scheduler.status(job_id):
+                logger.debug('waiting for job %s',job_id)
+                time.sleep(30)  # Check every 30 seconds
+
+def main(config_file,no_sub=False, single_queue=False):
     with open(config_file, 'r') as f:
         config = json.load(f)
 
     scheduler = get_scheduler(config["scheduler"])
 
     if config["run_type"] == "threads":
-        run_with_threads(scheduler, config, no_sub)
+        run_with_threads(scheduler, config, no_sub, single_queue)
     elif config["run_type"] == "ranks":
-        run_with_ranks(scheduler, config, no_sub)
+        run_with_ranks(scheduler, config, no_sub, single_queue)
     else:
         print(f"Invalid run_type: {config['run_type']}")
 
@@ -47,6 +63,8 @@ if __name__ == "__main__":
    parser.add_argument('-c','--config',help='Input config file in json format',required=True)
 
    parser.add_argument('--no-sub', default=False, action='store_true', help="For debugging, disable subprocess calls")
+   parser.add_argument('--single-queue', default=False, action='store_true', help="Ensure only one job is in the queue at a time")
+
 
    parser.add_argument('--debug', default=False, action='store_true', help="Set Logger to DEBUG")
    parser.add_argument('--error', default=False, action='store_true', help="Set Logger to ERROR")
@@ -66,4 +84,4 @@ if __name__ == "__main__":
                        datefmt=logging_datefmt,
                        filename=args.logfilename)
    
-   main(args.config,args.no_sub)
+   main(args.config,args.no_sub, single_queue=args.single_queue)
