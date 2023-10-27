@@ -16,7 +16,7 @@ echo [$SECONDS] passed threads={threads:d}  ranks={ranks:d}
 echo [$SECONDS] PWD=$PWD
 
 
-KOKKOS_VERSION=3.7.02
+KOKKOS_VERSION=4.1.00
 KOKKOS_ARCH=Kokkos_ARCH_AMPERE80
 KOKKOS_BUILD=Release
 
@@ -38,24 +38,25 @@ batch_size = {threads:d}
 n_batches = {n_batches:d}
 seed = 12345
 collision_energy = 14000
+mu2 = H_T^2/2
 verbosity = info
 
 [phase_space]
 use_cached_results = true
 cache_path = $PROJ_PATH/pepper_cache
-# integrator = Chili
+integrator = Chili(basic)
 
-[phase_space.chili]
-num_s_channels   = 99
-start_vegas_bins = 100
-max_vegas_bins   = 100
+# [phase_space.chili]
+# num_s_channels   = 99
+# start_vegas_bins = 100
+# max_vegas_bins   = 100
 
-[cuts]
-jets.pt_min = 0.01
-jets.nu_max = 5
-jets.dR_min = 0.4
-ll.m_min    = 66
-ll.m_max    = 116
+# [cuts]
+# jets.pt_min = 0.01
+# jets.nu_max = 5
+# jets.dR_min = 0.4
+# ll.m_min    = 66
+# ll.m_max    = 116
 
 [events]
 output_path = event_data.hdf5

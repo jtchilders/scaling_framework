@@ -2,7 +2,7 @@
    "scheduler": "PBS",
    "script_template_file": "templates/pepper_threads_polaris.sh",
    "script_template_opts":{
-      "process": "g g -> t tb g g g",
+      "process": "g g -> t tb g g g g",
       "n_batches": 1000,
       "executable": "src/pepper",
       "walltime": "00:20:00",

@@ -5,7 +5,7 @@
       "process": "g g -> t tb g g g g",
       "n_batches": 30,
       "executable": "src/pepper",
-      "walltime": "00:60:00",
+      "walltime": "00:20:00",
       "job_name": "pepper_scaling",
       "project": "atlas_aesp",
       "queue": "prod",
@@ -13,7 +13,7 @@
       "ranks_per_node": 4
    },
    "run_type": "ranks",
-   "range": [1024,512,256,128,64],
+   "range": [1024,512,256],
    "fixed_value": 1048576,
-   "output_path": "/lus/grand/projects/datascience/parton/pepper_output"
+   "output_path": "/lus/grand/projects/datascience/parton/pepper_output/g_g__t_tb_g_g_g_g"
 }
