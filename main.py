@@ -22,10 +22,12 @@ def run_with_threads(scheduler, config, no_sub=False, single_queue=False):
         job_id = scheduler.submit(config,threads,ranks,job_working_path,no_sub)
 
         if single_queue and not no_sub:
-            logger.info('waiting for job %s with %d threads %d ranks',job_id,threads,ranks)
+            logger.info('waiting for job %s with %d ranks %d threads %d ranks\njob path: %s',job_id,ranks,threads,ranks,job_working_path)
             while scheduler.status(job_id):
                 logger.debug('waiting for job %s',job_id)
                 time.sleep(30)  # Check every 30 seconds
+        else:
+            logger.info('submitted job %s with  %d ranks %d threads %d ranks\njob path: %s',job_id,ranks,threads,ranks,job_working_path)
 
 
 def run_with_ranks(scheduler, config, no_sub=False, single_queue=False):
@@ -35,10 +37,12 @@ def run_with_ranks(scheduler, config, no_sub=False, single_queue=False):
         job_id = scheduler.submit(config,threads,ranks,job_working_path,no_sub)
 
         if single_queue and not no_sub:
-            logger.info('waiting for job %s with %d threads %d ranks',job_id,threads,ranks)
+            logger.info('waiting for job %s with %d ranks %d threads %d ranks\njob path: %s',job_id,ranks,threads,ranks,job_working_path)
             while scheduler.status(job_id):
                 logger.debug('waiting for job %s',job_id)
                 time.sleep(30)  # Check every 30 seconds
+        else:
+            logger.info('submitted job %s with  %d ranks %d threads %d ranks\njob path: %s',job_id,ranks,threads,ranks,job_working_path)
 
 def main(config_file,no_sub=False, single_queue=False):
     with open(config_file, 'r') as f:
