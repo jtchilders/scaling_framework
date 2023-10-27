@@ -29,28 +29,33 @@ def main():
       fn_base = fn_base + '.'
 
    threads_base = os.path.join(args.input_path,'threads')
-   if args.overwrite:
-      threads_df = extraction_function(threads_base)
-   else:
-      threads_df = pd.read_csv(fn_base + 'threads.csv.gz',index_col=0)
-   title = "Thread Scaling for " + threads_df["Process"].loc[0]
-   plot_scaling_loglog(threads_df,"Batch Size","Number of Threads",args.name,args.name,title,fn_base+"thread_scaling.png",norm=False)
-   plot_scaling_loglog(threads_df,"Batch Size","Number of Threads",args.name,args.name + " (norm)",title,fn_base+"thread_scaling_norm.png",norm=True)
-   if args.overwrite:
-      threads_df.to_csv(fn_base + 'threads.csv.gz',compression='gzip')
+   if os.path.exists(threads_base):
+      if args.overwrite:
+         threads_df = extraction_function(threads_base)
+      else:
+         threads_df = pd.read_csv(fn_base + 'threads.csv.gz',index_col=0)
+      title = "Thread Scaling for " + threads_df["Process"].loc[0]
+      plot_scaling_loglog(threads_df,"Batch Size","Number of Threads",args.name,args.name,title,fn_base+"thread_scaling.png",norm=False)
+      plot_scaling_loglog(threads_df,"Batch Size","Number of Threads",args.name,args.name + " (norm)",title,fn_base+"thread_scaling_norm.png",norm=True)
+      if args.overwrite:
+         threads_df.to_csv(fn_base + 'threads.csv.gz',compression='gzip')
 
    ranks_base = os.path.join(args.input_path,'ranks')
-   if args.overwrite:
-      ranks_df = extraction_function(ranks_base)
-   else:
-      ranks_df = pd.read_csv(fn_base + 'ranks.csv.gz',index_col=0)
-   title = "Rank Scaling for " + threads_df["Process"].loc[0]
-   plot_scaling_loglog(ranks_df,"N Ranks","Number of Ranks",args.name,args.name,title,fn_base+"rank_scaling.png",norm=False)
-   plot_scaling_loglog(ranks_df,"N Ranks","Number of Ranks",args.name,args.name + " (norm)",title,fn_base+"rank_scaling_norm.png",norm=True)
-   plot_runtime_breakdown(ranks_df,fn_base)
-   create_two_plot_figure(ranks_df,"N Ranks",fn_base+"runtime_ratio.png")
-   if args.overwrite:
-      ranks_df.to_csv(fn_base + 'ranks.csv.gz',compression='gzip')
+   if os.path.exists(ranks_base):
+      if args.overwrite:
+         ranks_df = extraction_function(ranks_base)
+      else:
+         ranks_df = pd.read_csv(fn_base + 'ranks.csv.gz',index_col=0)
+      title = "Rank Scaling for " + ranks_df["Process"].loc[0]
+      ranks_df = ranks_df.sort_values(by="N Ranks")
+      plot_scaling_loglog(ranks_df,"N Ranks","Number of Ranks",args.name,args.name,title,fn_base+"rank_scaling.png",norm=False)
+      plot_scaling_loglog(ranks_df,"N Ranks","Number of Ranks",args.name,args.name + " (norm)",title,fn_base+"rank_scaling_norm.png",norm=True)
+      plot_runtime_breakdown(ranks_df,fn_base)
+      create_two_plot_figure(ranks_df,"N Ranks",fn_base+"runtime_to_bash_ratio.png")
+      plot_and_ratio(ranks_df,"N Ranks","Total Runtime",fn_base+"runtime.png")
+      plot_and_ratio(ranks_df,"N Ranks","Event Rate",fn_base+"event_rate.png")
+      if args.overwrite:
+         ranks_df.to_csv(fn_base + 'ranks.csv.gz',compression='gzip')
 
    # Assuming the extraction function returns a dataframe
    # df_list = [extraction_function(file) for file in sorted(glob.glob(data_glob))]
@@ -67,22 +72,18 @@ def main():
 def plot_runtime_breakdown(df,output_basename):
 
    # Define the groups of columns
-   top_level_columns = [
-      'Event Generation Runtime', 'Optimisation Runtime', 
-      'Initialisation Runtime', 'HDF5 Close Runtime', 
-      'Unweighting Setup Runtime'
-   ]
+   top_level_columns = ['Event Generation Runtime', 'Optimisation Runtime',
+                        'Initialisation Runtime', 'HDF5 Close Runtime',
+                        'Unweighting Setup Runtime']
 
-   event_generation_columns = [
-      'EG Recursion', 'EG Output', 
-      'EG PDF and AlphaS evaluation', 'EG Phase space', 'EG Output'
-   ]
+   event_generation_columns = ['EG Recursion','EG Output',
+                               'EG PDF and AlphaS evaluation','EG Phase space']
 
-   recursion_columns = [
-      'EG-R Calculate currents', 'EG-R Preparation', 
-      'EG-R IP reset', 'EG-R ME update', 
-      'EG-R ME reset', 'EG-R IC reset'
-   ]
+   recursion_columns = ["EG-R Calculate currents","EG-R Momenta preparation",
+                        "EG-R Currents preparation","EG-R IP reset",
+                        "EG-R ME update",
+                        "EG-R ME2 update",
+                        "EG-R ME reset","EG-R IC reset"]
 
 
    # Function to create the plot
@@ -143,6 +144,31 @@ def create_two_plot_figure(df, x_label,output_filename):
    plt.close("all")
 
 
+def plot_and_ratio(df,x_col,y_col,output_filename):
+   # Extract data
+   x_data = df[x_col].values
+   y_data = df[y_col].values
+
+   # Create main plot
+   fig, ax = plt.subplots(2, 1, gridspec_kw={'height_ratios': [3, 1], 'hspace': 0}, sharex=True)
+   
+   ax[0].plot(x_data, y_data, marker='o', linestyle='-')
+   ax[0].set_ylabel(y_col)
+   # ax[0].set_title("Total Runtime vs. N Ranks")
+   ax[0].grid(axis='y')
+
+   # Create normalized plot at the bottom
+   min_y_data = y_data[x_data == x_data.min()][0]  # Get y_data for smallest rank
+   normalized_y_data = y_data / min_y_data
+   ax[1].plot(x_data, normalized_y_data, marker='o', linestyle='-', color='r')
+   ax[1].set_xlabel(x_col)
+   ax[1].set_ylabel("Normalized " + y_col)
+   ax[1].grid(axis='y')
+
+   fig.tight_layout()
+   fig.savefig(output_filename)
+   plt.close("all")
+
 def plot_scaling_loglog(df, x_key, x_label, y_key, y_label, title, output_filename, norm=False):
    df = df.sort_values(by=x_key)
    plt.figure(dpi=240)
@@ -167,6 +193,7 @@ def plot_scaling_loglog(df, x_key, x_label, y_key, y_label, title, output_filena
 def extraction_function(base_path):
    # filename: "/path/to/output/{threads,ranks}/"
    subdirs = sorted(glob.glob(base_path + '/*',recursive=False))
+   # print(subdirs)
    rows = []
    for subdir in subdirs:
       csv_dict = extract_timers_csv(subdir)
@@ -178,6 +205,9 @@ def extraction_function(base_path):
       csv_dict.update(run_time)
       parallel_dict = extract_parallel_config(subdir)
       csv_dict.update(parallel_dict)
+      if csv_dict['Process'] == '' and csv_dict['Batch Size'] == 0:
+         continue
+      # print(csv_dict)
       rows.append(csv_dict)
    df = pd.DataFrame(rows)
    df['Batch Size'] = df['Batch Size'].astype(int)
@@ -277,7 +307,6 @@ def extract_timers_csv(base_path):
       timers['Task'] = timers['Task'].apply(lambda x: x.strip())
       # Remove padding from column names
       timers.columns = timers.columns.str.strip()
-
       return {
          'Total Runtime':                 timers.loc[timers['Task'] == 'Total','Duration [s]'].iloc[0],
          'Event Generation Runtime':      timers.loc[timers['Task'] == 'Event generation','Duration [s]'].iloc[0],
@@ -291,9 +320,11 @@ def extract_timers_csv(base_path):
          'EG Phase space':                timers.loc[timers['Task'] == 'Phase space','Duration [s]'].iloc[0],
          'EG Output':                     timers.loc[timers['Task'] == 'Output','Duration [s]'].iloc[0],
          'EG-R Calculate currents':       timers.loc[timers['Task'] == 'Calculate currents','Duration [s]'].iloc[0],
-         'EG-R Preparation':              timers.loc[timers['Task'] == 'Preparation','Duration [s]'].iloc[0],
+         'EG-R Momenta preparation':      timers.loc[timers['Task'] == 'Momenta preparation','Duration [s]'].iloc[0],
+         'EG-R Currents preparation':     timers.loc[timers['Task'] == 'Currents preparation','Duration [s]'].iloc[0],
          'EG-R IP reset':                 timers.loc[timers['Task'] == 'Internal particle information reset','Duration [s]'].iloc[0],
          'EG-R ME update':                timers.loc[timers['Task'] == 'ME update','Duration [s]'].iloc[0],
+         'EG-R ME2 update':               timers.loc[timers['Task'] == 'ME2 update','Duration [s]'].iloc[0],
          'EG-R ME reset':                 timers.loc[timers['Task'] == 'ME reset','Duration [s]'].iloc[0],
          'EG-R IC reset':                 timers.loc[timers['Task'] == 'Internal currents reset','Duration [s]'].iloc[0],
          'CSV Timer Filename':            timers_csv_fn,
